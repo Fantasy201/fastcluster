@@ -104,12 +104,12 @@ def get_optimization_flags():
                 import os
                 # 检查 Apple Silicon Homebrew
                 if os.path.exists('/opt/homebrew/opt/libomp/include/omp.h'):
-                    flags.extend(['-fopenmp', '-I/opt/homebrew/opt/libomp/include', '-L/opt/homebrew/opt/libomp/lib'])
+                    flags.extend(['-fopenmp', '-I/opt/homebrew/opt/libomp/include', '-L/opt/homebrew/opt/libomp/lib', '-lomp'])
                     openmp_found = True
                     print("✓ OpenMP 支持已启用 (Homebrew libomp - Apple Silicon)")
                 # 检查 Intel Mac Homebrew
                 elif os.path.exists('/usr/local/opt/libomp/include/omp.h'):
-                    flags.extend(['-fopenmp', '-I/usr/local/opt/libomp/include', '-L/usr/local/opt/libomp/lib'])
+                    flags.extend(['-fopenmp', '-I/usr/local/opt/libomp/include', '-L/usr/local/opt/libomp/lib', '-lomp'])
                     openmp_found = True
                     print("✓ OpenMP 支持已启用 (Homebrew libomp - Intel Mac)")
             except:
@@ -184,26 +184,10 @@ class OptimizedBuildExt(build_ext):
         system = platform.system().lower()
         if system == 'darwin':
             if os.path.exists('/opt/homebrew/opt/libomp/include/omp.h') or os.path.exists('/usr/local/opt/libomp/include/omp.h'):
-                print("检测到Homebrew libomp，将使用Homebrew GCC")
-                # 使用Homebrew的GCC而不是系统clang++
-                if os.path.exists('/opt/homebrew/bin/gcc-15'):
-                    os.environ['CC'] = '/opt/homebrew/bin/gcc-15'
-                    os.environ['CXX'] = '/opt/homebrew/bin/g++-15'
-                    print("使用Homebrew GCC-15")
-                    # 强制设置编译器
-                    import distutils.sysconfig
-                    distutils.sysconfig.get_config_vars()['CC'] = '/opt/homebrew/bin/gcc-15'
-                    distutils.sysconfig.get_config_vars()['CXX'] = '/opt/homebrew/bin/g++-15'
-                elif os.path.exists('/usr/local/bin/gcc-15'):
-                    os.environ['CC'] = '/usr/local/bin/gcc-15'
-                    os.environ['CXX'] = '/usr/local/bin/g++-15'
-                    print("使用Homebrew GCC-15 (Intel Mac)")
-                    # 强制设置编译器
-                    import distutils.sysconfig
-                    distutils.sysconfig.get_config_vars()['CC'] = '/usr/local/bin/gcc-15'
-                    distutils.sysconfig.get_config_vars()['CXX'] = '/usr/local/bin/g++-15'
-                else:
-                    print("未找到Homebrew GCC，将使用系统编译器")
+                print("检测到Homebrew libomp，将使用系统 clang 但链接 Homebrew libomp")
+                # 使用系统 clang 但链接 Homebrew libomp
+                print("使用系统 clang 编译器")
+                # 不改变编译器，但确保链接正确的 OpenMP 库
         
         # 应用到所有扩展
         for ext in self.extensions:
