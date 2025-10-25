@@ -232,17 +232,17 @@ namespace simd_utils {
         }
 #elif defined(__ARM_NEON)
         if (get_simd_features() & SIMD_NEON) {
-            // 对于double类型，使用float64x2_t
-            float64x2_t sum_vec = vdupq_n_f64(0.0);
-            for (; i + 2 <= dim; i += 2) {
-                float64x2_t va = vld1q_f64(a + i);
-                float64x2_t vb = vld1q_f64(b + i);
-                float64x2_t diff = vsubq_f64(va, vb);
-                float64x2_t square = vmulq_f64(diff, diff);
-                sum_vec = vaddq_f64(sum_vec, square);
+            float32x4_t sum_vec = vdupq_n_f32(0.0f);
+            for (; i + 4 <= dim; i += 4) {
+                float32x4_t va = vld1q_f32(reinterpret_cast<const float*>(a + i));
+                float32x4_t vb = vld1q_f32(reinterpret_cast<const float*>(b + i));
+                float32x4_t diff = vsubq_f32(va, vb);
+                float32x4_t square = vmulq_f32(diff, diff);
+                sum_vec = vaddq_f32(sum_vec, square);
             }
             // Horizontal sum
-            sum = vgetq_lane_f64(sum_vec, 0) + vgetq_lane_f64(sum_vec, 1);
+            float32x2_t sum2 = vadd_f32(vget_low_f32(sum_vec), vget_high_f32(sum_vec));
+            sum = vget_lane_f32(vpadd_f32(sum2, sum2), 0);
         }
 #endif
         
@@ -1276,7 +1276,7 @@ static void generic_linkage(const t_index N, t_float * const D, t_members * cons
       // Update the distance matrix in the range [start, idx1).
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static)
-      for (t_index k=0; k<active_nodes.succ.size(); ++k) {
+      for (t_index k=0; k<N; ++k) {
         if (active_nodes.succ[k] == 0) continue; // Skip inactive nodes
         t_index j = k;
         if (j >= active_nodes.start && j < idx1) {
